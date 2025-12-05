@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "49427479118",
+    "project_id": "smartshop-ebd08",
+    "storage_bucket": "smartshop-ebd08.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:49427479118:android:1106613d7b0c6ba15a211f",
+        "android_client_info": {
+          "package_name": "com.example.smartshop"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDeE6EXeE6uhFTjdF6weY-OPX8-XW0BvKY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
