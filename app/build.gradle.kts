@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")  // ADD THIS LINE
+    id("com.google.devtools.ksp") version "2.0.21-1.0.27"
 }
 
 android {
@@ -56,7 +57,16 @@ dependencies {
 
     //navigation
     implementation("androidx.navigation:navigation-compose:2.7.6")
+// Room
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
+    // ViewModel
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
 
+    // Firestore
+    implementation("com.google.firebase:firebase-firestore-ktx:24.10.1")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
