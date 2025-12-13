@@ -60,6 +60,7 @@ dependencies {
 // Room
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
+    implementation(libs.vision.internal.vkp)
     ksp("androidx.room:room-compiler:2.6.1")
     // ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
@@ -67,6 +68,9 @@ dependencies {
 
     // Firestore
     implementation("com.google.firebase:firebase-firestore-ktx:24.10.1")
+
+    // Coil for Compose
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

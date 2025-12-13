@@ -19,7 +19,7 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
     private val _products = MutableStateFlow<List<Product>>(emptyList())
     val products: StateFlow<List<Product>> = _products.asStateFlow()
 
-    private val _syncStatus = MutableStateFlow<String>("Prêt")
+    private val _syncStatus = MutableStateFlow("Prêt")
     val syncStatus: StateFlow<String> = _syncStatus.asStateFlow()
 
     init {
@@ -53,13 +53,23 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun addProduct(name: String, quantity: Int, price: Double) {
+    fun addProduct(
+        name: String,
+        quantity: Int,
+        price: Double,
+        imageUrl: String,
+        rating: Float,
+        isDeal: Boolean
+    ) {
         viewModelScope.launch {
             val product = Product(
                 id = UUID.randomUUID().toString(),
                 name = name,
                 quantity = quantity,
-                price = price
+                price = price,
+                imageUrl = imageUrl,
+                rating = rating,
+                isDealOfTheDay = isDeal
             )
             repository.insert(product)
         }
@@ -67,7 +77,11 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
 
     fun updateProduct(product: Product) {
         viewModelScope.launch {
-            repository.update(product.copy(lastModified = System.currentTimeMillis()))
+            repository.update(
+                product.copy(
+                    lastModified = System.currentTimeMillis()
+                )
+            )
         }
     }
 

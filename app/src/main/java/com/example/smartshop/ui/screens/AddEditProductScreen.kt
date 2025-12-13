@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -24,13 +25,16 @@ fun AddEditProductScreen(
     var name by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
+    var imageUrl by remember { mutableStateOf("") }
+    var rating by remember { mutableStateOf("4.5") }
+    var isDeal by remember { mutableStateOf(false) }
+
     var errorMessage by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
     val isEditMode = productId != null
 
-    // Load product if editing
     LaunchedEffect(productId) {
         if (productId != null) {
             isLoading = true
@@ -39,6 +43,9 @@ fun AddEditProductScreen(
                 name = it.name
                 quantity = it.quantity.toString()
                 price = it.price.toString()
+                imageUrl = it.imageUrl
+                rating = it.rating.toString()
+                isDeal = it.isDealOfTheDay
             }
             isLoading = false
         }
@@ -47,10 +54,12 @@ fun AddEditProductScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isEditMode) "Modifier le produit" else "Ajouter un produit") },
+                title = {
+                    Text(if (isEditMode) "Modifier le produit" else "Ajouter un produit")
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Retour")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
                     }
                 }
             )
@@ -70,7 +79,7 @@ fun AddEditProductScreen(
                 enabled = !isLoading
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
 
             OutlinedTextField(
                 value = quantity,
@@ -81,7 +90,7 @@ fun AddEditProductScreen(
                 enabled = !isLoading
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
 
             OutlinedTextField(
                 value = price,
@@ -92,29 +101,69 @@ fun AddEditProductScreen(
                 enabled = !isLoading
             )
 
-            if (errorMessage.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = errorMessage,
-                    color = MaterialTheme.colorScheme.error
+            Spacer(Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = imageUrl,
+                onValueChange = { imageUrl = it },
+                label = { Text("Image URL") },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isLoading
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = rating,
+                onValueChange = { rating = it },
+                label = { Text("Note (0–5)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isLoading
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Deal of the Day")
+                Switch(
+                    checked = isDeal,
+                    onCheckedChange = { isDeal = it },
+                    enabled = !isLoading
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            if (errorMessage.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Spacer(Modifier.height(20.dp))
 
             Button(
                 onClick = {
                     scope.launch {
-                        // Validation
                         val quantityInt = quantity.toIntOrNull()
                         val priceDouble = price.toDoubleOrNull()
+                        val ratingFloat = rating.toFloatOrNull()
 
                         when {
-                            name.isBlank() -> errorMessage = "Le nom ne peut pas être vide"
+                            name.isBlank() ->
+                                errorMessage = "Le nom ne peut pas être vide"
                             quantityInt == null || quantityInt <= 0 ->
                                 errorMessage = "La quantité doit être > 0"
                             priceDouble == null || priceDouble <= 0 ->
                                 errorMessage = "Le prix doit être > 0"
+                            ratingFloat == null || ratingFloat < 0f || ratingFloat > 5f ->
+                                errorMessage = "La note doit être entre 0 et 5"
                             else -> {
                                 errorMessage = ""
                                 isLoading = true
@@ -126,29 +175,43 @@ fun AddEditProductScreen(
                                             product.copy(
                                                 name = name,
                                                 quantity = quantityInt,
-                                                price = priceDouble
+                                                price = priceDouble,
+                                                imageUrl = imageUrl,
+                                                rating = ratingFloat,
+                                                isDealOfTheDay = isDeal
                                             )
                                         )
                                     }
                                 } else {
-                                    viewModel.addProduct(name, quantityInt, priceDouble)
+                                    viewModel.addProduct(
+                                        name = name,
+                                        quantity = quantityInt,
+                                        price = priceDouble,
+                                        imageUrl = imageUrl,
+                                        rating = ratingFloat,
+                                        isDeal = isDeal
+                                    )
                                 }
 
+                                isLoading = false
                                 onNavigateBack()
                             }
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
                 enabled = !isLoading
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        modifier = Modifier.size(22.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
                     )
                 } else {
-                    Text(if (isEditMode) "Modifier" else "Ajouter")
+                    Text(if (isEditMode) "Enregistrer" else "Ajouter")
                 }
             }
         }
