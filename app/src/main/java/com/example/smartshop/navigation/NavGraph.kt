@@ -8,7 +8,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.smartshop.auth.LoginScreen
-import com.example.smartshop.ui.screens.*
+import com.example.smartshop.ui.screens.AddEditProductScreen
+import com.example.smartshop.ui.screens.CartScreen
+import com.example.smartshop.ui.screens.HomeScreen
+import com.example.smartshop.ui.screens.ProductListScreen
+import com.example.smartshop.ui.screens.StatisticsScreen
 import com.example.smartshop.viewmodel.ProductViewModel
 
 @Composable
@@ -16,7 +20,6 @@ fun NavGraph(
     navController: NavHostController,
     startDestination: String
 ) {
-    // Shared ViewModel across screens
     val productViewModel: ProductViewModel = viewModel()
 
     NavHost(
@@ -26,7 +29,7 @@ fun NavGraph(
         composable(Routes.Login.route) {
             LoginScreen(
                 onLoginSuccess = {
-                    navController.navigate(Routes.Home.route) {
+                    navController.navigate(Routes.ProductList.route) {
                         popUpTo(Routes.Login.route) { inclusive = true }
                     }
                 }
@@ -51,11 +54,14 @@ fun NavGraph(
 
         composable(Routes.ProductList.route) {
             ProductListScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToAdd = { navController.navigate(Routes.AddProduct.route) },
-                onNavigateToEdit = { productId ->
-                    navController.navigate(Routes.EditProduct.createRoute(productId))
+                onLogoutToLogin = {
+                    navController.navigate(Routes.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 },
+                onNavigateToAdd = { navController.navigate(Routes.AddProduct.route) },
+                onNavigateToStats = { navController.navigate(Routes.Statistics.route) },
+                onNavigateToCart = { navController.navigate(Routes.Cart.route) },
                 viewModel = productViewModel
             )
         }
@@ -82,6 +88,13 @@ fun NavGraph(
 
         composable(Routes.Statistics.route) {
             StatisticsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                viewModel = productViewModel
+            )
+        }
+
+        composable(Routes.Cart.route) {
+            CartScreen(
                 onNavigateBack = { navController.popBackStack() },
                 viewModel = productViewModel
             )

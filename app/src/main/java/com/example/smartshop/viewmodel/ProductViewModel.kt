@@ -19,8 +19,8 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
     private val _products = MutableStateFlow<List<Product>>(emptyList())
     val products: StateFlow<List<Product>> = _products.asStateFlow()
 
-    private val _syncStatus = MutableStateFlow("Prêt")
-    val syncStatus: StateFlow<String> = _syncStatus.asStateFlow()
+    private val _cart = MutableStateFlow<List<Product>>(emptyList())
+    val cart: StateFlow<List<Product>> = _cart.asStateFlow()
 
     init {
         val productDao = AppDatabase.getDatabase(application).productDao()
@@ -41,16 +41,12 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
 
     private fun syncFromCloud() {
         viewModelScope.launch {
-            _syncStatus.value = "Synchronisation..."
             repository.syncFromFirestore()
-            _syncStatus.value = "Synchronisé"
         }
     }
 
     private fun setupRealtimeSync() {
-        repository.listenToFirestoreChanges {
-            _syncStatus.value = "Mise à jour reçue"
-        }
+        repository.listenToFirestoreChanges { }
     }
 
     fun addProduct(
@@ -77,11 +73,7 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
 
     fun updateProduct(product: Product) {
         viewModelScope.launch {
-            repository.update(
-                product.copy(
-                    lastModified = System.currentTimeMillis()
-                )
-            )
+            repository.update(product.copy(lastModified = System.currentTimeMillis()))
         }
     }
 
@@ -93,5 +85,60 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
 
     suspend fun getProductById(id: String): Product? {
         return repository.getProductById(id)
+    }
+
+    // ---------- CART LOGIC (no stock change until confirm) ----------
+
+    fun addItemToCart(product: Product) {
+        val current = _cart.value.toMutableList()
+        val idx = current.indexOfFirst { it.id == product.id }
+        if (idx >= 0) {
+            val existing = current[idx]
+            current[idx] = existing.copy(quantity = existing.quantity + 1)
+        } else {
+            current.add(product.copy(quantity = 1))
+        }
+        _cart.value = current
+    }
+
+    fun changeCartQuantity(productId: String, delta: Int) {
+        val current = _cart.value.toMutableList()
+        val idx = current.indexOfFirst { it.id == productId }
+        if (idx < 0) return
+        val item = current[idx]
+        val newQty = item.quantity + delta
+        if (newQty <= 0) {
+            current.removeAt(idx)
+        } else {
+            current[idx] = item.copy(quantity = newQty)
+        }
+        _cart.value = current
+    }
+
+    fun removeFromCart(productId: String) {
+        val current = _cart.value.toMutableList()
+        current.removeAll { it.id == productId }
+        _cart.value = current
+    }
+
+    fun confirmOrder(paymentMethod: String, address: String) {
+        // For school project: just deduct from stock and clear cart, no real payment.
+        viewModelScope.launch {
+            val cartSnapshot = _cart.value.toList()
+            val currentProducts = _products.value.toMutableList()
+
+            cartSnapshot.forEach { cartItem ->
+                val idx = currentProducts.indexOfFirst { it.id == cartItem.id }
+                if (idx >= 0) {
+                    val product = currentProducts[idx]
+                    val newStock = (product.quantity - cartItem.quantity).coerceAtLeast(0)
+                    val updated = product.copy(quantity = newStock)
+                    currentProducts[idx] = updated
+                    repository.update(updated)
+                }
+            }
+
+            _cart.value = emptyList()
+        }
     }
 }

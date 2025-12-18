@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.smartshop.data.model.Product
 
-@Database(entities = [Product::class], version = 2, exportSchema = false)
+@Database(entities = [Product::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun productDao(): ProductDao
 
@@ -21,7 +21,6 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "smartshop_database"
                 )
-                    // IMPORTANT: wipe and recreate DB when version changes
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

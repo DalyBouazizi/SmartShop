@@ -1,42 +1,64 @@
 package com.example.smartshop.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.smartshop.data.model.Product
 import com.example.smartshop.viewmodel.ProductViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductListScreen(
-    onNavigateBack: () -> Unit,
+    onLogoutToLogin: () -> Unit,
     onNavigateToAdd: () -> Unit,
-    onNavigateToEdit: (String) -> Unit,
-    viewModel: ProductViewModel = viewModel()
+    onNavigateToStats: () -> Unit,
+    onNavigateToCart: () -> Unit,
+    viewModel: ProductViewModel
 ) {
     val products by viewModel.products.collectAsState()
+    val auth = FirebaseAuth.getInstance()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Produits") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
+                actions = {
+                    IconButton(onClick = onNavigateToStats) {
+                        Icon(
+                            imageVector = Icons.Filled.PieChart,
+                            contentDescription = "Statistiques"
+                        )
+                    }
+                    IconButton(onClick = onNavigateToCart) {
+                        Icon(
+                            imageVector = Icons.Filled.ShoppingCart,
+                            contentDescription = "Panier"
+                        )
+                    }
+                    IconButton(onClick = {
+                        auth.signOut()
+                        onLogoutToLogin()
+                    }) {
+                        Icon(
+                            imageVector = Icons.Filled.ExitToApp,
+                            contentDescription = "Déconnexion"
+                        )
                     }
                 }
             )
@@ -46,49 +68,37 @@ fun ProductListScreen(
                 onClick = onNavigateToAdd,
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Ajouter")
-                Spacer(Modifier.width(8.dp))
-                Text("Ajouter")
+                Text("+ Produit")
             }
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(vertical = 8.dp)
-        ) {
-            if (products.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Aucun produit pour le moment.\nAppuyez sur “Ajouter”.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
+        if (products.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
-                    text = "Deals of the Day",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
+                    text = "Aucun produit. Appuyez sur + pour ajouter.",
+                    style = MaterialTheme.typography.bodyMedium
                 )
-
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(products) { product ->
-                        ProductCard(
-                            product = product,
-                            onEdit = { onNavigateToEdit(product.id) },
-                            onDelete = { viewModel.deleteProduct(product) }
-                        )
-                    }
+            }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentPadding = PaddingValues(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(products) { product ->
+                    ProductCardGrid(
+                        product = product,
+                        onClick = { viewModel.addItemToCart(product) }
+                    )
                 }
             }
         }
@@ -96,39 +106,28 @@ fun ProductListScreen(
 }
 
 @Composable
-private fun ProductCard(
+private fun ProductCardGrid(
     product: Product,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onClick: () -> Unit
 ) {
-    var showDeleteDialog by remember { mutableStateOf(false) }
-
-    val cardColors = if (product.isDealOfTheDay) {
-        CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    } else {
-        CardDefaults.cardColors()
-    }
-
     Card(
         modifier = Modifier
-            .width(180.dp)
-            .height(260.dp),
-        colors = cardColors,
-        shape = MaterialTheme.shapes.large,
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            .fillMaxWidth()
+            .height(230.dp)
+            .clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp)
+                .padding(8.dp)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
-                    .clip(MaterialTheme.shapes.medium)
+                    .height(110.dp)
+                    .clip(MaterialTheme.shapes.small)
                     .background(
                         Brush.verticalGradient(
                             listOf(
@@ -146,7 +145,7 @@ private fun ProductCard(
                 )
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(6.dp))
 
             Text(
                 text = product.name,
@@ -154,7 +153,7 @@ private fun ProductCard(
                 maxLines = 2
             )
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(2.dp))
 
             Text(
                 text = "%.2f TND".format(product.price),
@@ -162,70 +161,13 @@ private fun ProductCard(
                 color = MaterialTheme.colorScheme.primary
             )
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(2.dp))
 
-            RatingBar(rating = product.rating)
-
-            Spacer(Modifier.weight(1f))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                TextButton(onClick = onEdit) {
-                    Text("Modifier")
-                }
-                TextButton(
-                    onClick = { showDeleteDialog = true },
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("Suppr.")
-                }
-            }
-        }
-    }
-
-    if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Supprimer le produit") },
-            text = { Text("Voulez-vous vraiment supprimer ${product.name} ?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    onDelete()
-                    showDeleteDialog = false
-                }) {
-                    Text("Supprimer")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Annuler")
-                }
-            }
-        )
-    }
-}
-
-@Composable
-private fun RatingBar(rating: Float) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        repeat(5) { index ->
-            val filled = rating >= index + 1
-            val starColor = if (filled) Color(0xFFFFC107) else Color(0xFFE0E0E0)
-            Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .background(starColor, shape = MaterialTheme.shapes.small)
+            Text(
+                text = "Stock: ${product.quantity}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        Spacer(Modifier.width(4.dp))
-        Text(
-            text = "%.1f".format(rating),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }

@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
 
                 // Check if user is already logged in
                 val startDestination = if (auth.currentUser != null) {
-                    Routes.Home.route
+                    Routes.ProductList.route
                 } else {
                     Routes.Login.route
                 }

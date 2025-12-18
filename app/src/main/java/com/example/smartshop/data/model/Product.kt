@@ -12,5 +12,8 @@ data class Product(
     val imageUrl: String = "",          // NEW: image URL
     val rating: Float = 4.5f,           // NEW: rating (0–5)
     val isDealOfTheDay: Boolean = false, // NEW: flag to highlight card
+    val inCartQuantity: Int = 0,
     val lastModified: Long = System.currentTimeMillis()
+
+
 )
