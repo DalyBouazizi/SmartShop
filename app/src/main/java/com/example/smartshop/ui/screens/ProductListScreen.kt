@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.smartshop.data.model.Product
 import com.example.smartshop.viewmodel.ProductViewModel
+import com.example.smartshop.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,21 +30,27 @@ fun ProductListScreen(
     onNavigateToAdd: () -> Unit,
     onNavigateToStats: () -> Unit,
     onNavigateToCart: () -> Unit,
-    viewModel: ProductViewModel
+    viewModel: ProductViewModel,
+    userViewModel: UserViewModel
 ) {
     val products by viewModel.products.collectAsState()
+    val userRole by userViewModel.userRole.collectAsState()
     val auth = FirebaseAuth.getInstance()
+
+    val isAdmin = userRole == "admin"
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Produits") },
                 actions = {
-                    IconButton(onClick = onNavigateToStats) {
-                        Icon(
-                            imageVector = Icons.Filled.PieChart,
-                            contentDescription = "Statistiques"
-                        )
+                    if (isAdmin) {
+                        IconButton(onClick = onNavigateToStats) {
+                            Icon(
+                                imageVector = Icons.Filled.PieChart,
+                                contentDescription = "Statistiques"
+                            )
+                        }
                     }
                     IconButton(onClick = onNavigateToCart) {
                         Icon(
@@ -64,11 +71,13 @@ fun ProductListScreen(
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onNavigateToAdd,
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Text("+ Produit")
+            if (isAdmin) {
+                ExtendedFloatingActionButton(
+                    onClick = onNavigateToAdd,
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Text("+ Produit")
+                }
             }
         }
     ) { padding ->
@@ -80,7 +89,7 @@ fun ProductListScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Aucun produit. Appuyez sur + pour ajouter.",
+                    text = "Aucun produit disponible.",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }

@@ -1,137 +1,147 @@
 package com.example.smartshop.auth
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MailOutline
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun LoginScreen(onLoginSuccess: () -> Unit) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var isLogin by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var selectedRole by remember { mutableStateOf("user") }
 
     val auth = FirebaseAuth.getInstance()
+    val firestore = FirebaseFirestore.getInstance()
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp),
-        contentAlignment = Alignment.Center
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        Text(
+            text = if (isLogin) "Connexion" else "Inscription",
+            style = MaterialTheme.typography.headlineMedium
+        )
+
+        Spacer(Modifier.height(32.dp))
+
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email") },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Mot de passe") },
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        if (!isLogin) {
+            Spacer(Modifier.height(16.dp))
+            Text("Type de compte:", style = MaterialTheme.typography.labelMedium)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                FilterChip(
+                    selected = selectedRole == "user",
+                    onClick = { selectedRole = "user" },
+                    label = { Text("Utilisateur") }
+                )
+                FilterChip(
+                    selected = selectedRole == "admin",
+                    onClick = { selectedRole = "admin" },
+                    label = { Text("Admin") }
+                )
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        if (errorMessage.isNotEmpty()) {
             Text(
-                text = "SmartShop",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+                text = errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
             )
             Spacer(Modifier.height(8.dp))
-            Text(
-                text = "Connectez-vous pour gérer votre stock",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(32.dp))
+        }
 
-            Surface(
-                shape = RoundedCornerShape(24.dp),
-                tonalElevation = 4.dp,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(20.dp)
-                ) {
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = { Text("Email") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.MailOutline,
-                                contentDescription = null
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !isLoading,
-                        singleLine = true
-                    )
+        Button(
+            onClick = {
+                isLoading = true
+                errorMessage = ""
 
-                    Spacer(Modifier.height(16.dp))
-
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = { Text("Mot de passe") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = null
-                            )
-                        },
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !isLoading,
-                        singleLine = true
-                    )
-
-                    if (errorMessage.isNotEmpty()) {
-                        Spacer(Modifier.height(12.dp))
-                        Text(
-                            text = errorMessage,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-
-                    Spacer(Modifier.height(24.dp))
-
-                    Button(
-                        onClick = {
-                            isLoading = true
-                            errorMessage = ""
-                            auth.signInWithEmailAndPassword(email, password)
-                                .addOnCompleteListener { task ->
-                                    isLoading = false
-                                    if (task.isSuccessful) {
-                                        onLoginSuccess()
-                                    } else {
-                                        errorMessage = task.exception?.message
-                                            ?: "Erreur de connexion"
-                                    }
-                                }
-                        },
-                        enabled = !isLoading && email.isNotBlank() && password.isNotBlank(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(50)
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(22.dp),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text("Se connecter")
+                if (isLogin) {
+                    auth.signInWithEmailAndPassword(email, password)
+                        .addOnSuccessListener {
+                            isLoading = false
+                            onLoginSuccess()
                         }
-                    }
+                        .addOnFailureListener { e ->
+                            isLoading = false
+                            errorMessage = e.message ?: "Erreur de connexion"
+                        }
+                } else {
+                    auth.createUserWithEmailAndPassword(email, password)
+                        .addOnSuccessListener { result ->
+                            val userId = result.user?.uid ?: return@addOnSuccessListener
+                            val userDoc = hashMapOf(
+                                "email" to email,
+                                "role" to selectedRole
+                            )
+                            firestore.collection("users").document(userId).set(userDoc)
+                                .addOnSuccessListener {
+                                    isLoading = false
+                                    onLoginSuccess()
+                                }
+                                .addOnFailureListener { e ->
+                                    isLoading = false
+                                    errorMessage = e.message ?: "Erreur Firestore"
+                                }
+                        }
+                        .addOnFailureListener { e ->
+                            isLoading = false
+                            errorMessage = e.message ?: "Erreur d'inscription"
+                        }
                 }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            enabled = !isLoading
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            } else {
+                Text(if (isLogin) "Se connecter" else "S'inscrire")
             }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        TextButton(onClick = { isLogin = !isLogin }) {
+            Text(if (isLogin) "Pas de compte ? S'inscrire" else "Déjà un compte ? Se connecter")
         }
     }
 }

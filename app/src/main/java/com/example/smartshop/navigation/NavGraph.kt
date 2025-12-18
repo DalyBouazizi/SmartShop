@@ -14,6 +14,7 @@ import com.example.smartshop.ui.screens.HomeScreen
 import com.example.smartshop.ui.screens.ProductListScreen
 import com.example.smartshop.ui.screens.StatisticsScreen
 import com.example.smartshop.viewmodel.ProductViewModel
+import com.example.smartshop.viewmodel.UserViewModel
 
 @Composable
 fun NavGraph(
@@ -21,6 +22,7 @@ fun NavGraph(
     startDestination: String
 ) {
     val productViewModel: ProductViewModel = viewModel()
+    val userViewModel: UserViewModel = viewModel()
 
     NavHost(
         navController = navController,
@@ -29,6 +31,7 @@ fun NavGraph(
         composable(Routes.Login.route) {
             LoginScreen(
                 onLoginSuccess = {
+                    userViewModel.fetchUserRole()
                     navController.navigate(Routes.ProductList.route) {
                         popUpTo(Routes.Login.route) { inclusive = true }
                     }
@@ -62,7 +65,8 @@ fun NavGraph(
                 onNavigateToAdd = { navController.navigate(Routes.AddProduct.route) },
                 onNavigateToStats = { navController.navigate(Routes.Statistics.route) },
                 onNavigateToCart = { navController.navigate(Routes.Cart.route) },
-                viewModel = productViewModel
+                viewModel = productViewModel,
+                userViewModel = userViewModel
             )
         }
 
