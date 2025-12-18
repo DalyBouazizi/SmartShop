@@ -1,5 +1,6 @@
 package com.example.smartshop.ui.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -7,7 +8,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.smartshop.viewmodel.ProductViewModel
@@ -23,7 +27,7 @@ fun StatisticsScreen(
     val totalProducts = products.size
     val totalStockValue = products.sumOf { it.price * it.quantity }
     val totalItems = products.sumOf { it.quantity }
-    val averagePrice = if (totalProducts > 0) totalStockValue / totalItems else 0.0
+    val averagePrice = if (totalItems > 0) totalStockValue / totalItems else 0.0
 
     Scaffold(
         topBar = {
@@ -66,7 +70,7 @@ fun StatisticsScreen(
 
             item {
                 Spacer(Modifier.height(16.dp))
-                Text("Produits par stock", style = MaterialTheme.typography.titleMedium)
+                Text("Top 10 produits par stock", style = MaterialTheme.typography.titleMedium)
             }
 
             items(products.sortedByDescending { it.quantity }.take(10)) { product ->
@@ -79,12 +83,13 @@ fun StatisticsScreen(
                     Text(product.name, modifier = Modifier.weight(1f))
                     Text("${product.quantity} unités", color = MaterialTheme.colorScheme.primary)
                 }
-                Divider()
+                HorizontalDivider()
             }
 
             item {
-                Spacer(Modifier.height(16.dp))
-                Text("Graphique: Top 5 produits (par valeur)", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(24.dp))
+                Text("Graphique: Top 5 produits (par valeur)", style = MaterialTheme.typography.titleLarge)
+                Spacer(Modifier.height(8.dp))
             }
 
             item {
@@ -92,9 +97,33 @@ fun StatisticsScreen(
                     .sortedByDescending { it.price * it.quantity }
                     .take(5)
 
-                SimpleBarChart(
-                    data = top5.associate { it.name to (it.price * it.quantity) }
-                )
+                if (top5.isNotEmpty()) {
+                    BarChartComposable(
+                        data = top5.associate { it.name to (it.price * it.quantity) }
+                    )
+                } else {
+                    Text("Aucune donnée disponible", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+
+            item {
+                Spacer(Modifier.height(24.dp))
+                Text("Graphique: Quantité en stock (Top 5)", style = MaterialTheme.typography.titleLarge)
+                Spacer(Modifier.height(8.dp))
+            }
+
+            item {
+                val top5Stock = products
+                    .sortedByDescending { it.quantity }
+                    .take(5)
+
+                if (top5Stock.isNotEmpty()) {
+                    BarChartComposable(
+                        data = top5Stock.associate { it.name to it.quantity.toDouble() }
+                    )
+                } else {
+                    Text("Aucune donnée disponible", style = MaterialTheme.typography.bodyMedium)
+                }
             }
         }
     }
@@ -117,33 +146,69 @@ private fun StatCard(label: String, value: String) {
 }
 
 @Composable
-private fun SimpleBarChart(data: Map<String, Double>) {
-    val maxValue = data.values.maxOrNull() ?: 1.0
+private fun BarChartComposable(data: Map<String, Double>) {
+    if (data.isEmpty()) return
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    val maxValue = data.values.maxOrNull() ?: 1.0
+    val barColor = MaterialTheme.colorScheme.primary
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(300.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        data.forEach { (label, value) ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            // Canvas chart
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
             ) {
-                Text(
-                    text = label,
-                    modifier = Modifier.width(100.dp),
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Box(
-                    modifier = Modifier
-                        .height(24.dp)
-                        .fillMaxWidth((value / maxValue).toFloat())
-                        .padding(vertical = 4.dp)
-                ) {
-                    Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.primary
-                    ) {}
+                val canvasWidth = size.width
+                val canvasHeight = size.height
+                val barCount = data.size
+                val barWidth = (canvasWidth / barCount) * 0.7f
+                val spacing = (canvasWidth / barCount) * 0.3f
+
+                data.values.forEachIndexed { index, value ->
+                    val barHeight = (value / maxValue * canvasHeight).toFloat()
+                    val x = index * (barWidth + spacing) + spacing / 2
+
+                    drawRect(
+                        color = barColor,
+                        topLeft = Offset(x, canvasHeight - barHeight),
+                        size = Size(barWidth, barHeight)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Legend
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                data.entries.forEachIndexed { index, entry ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "${index + 1}. ${entry.key}",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = "%.2f".format(entry.value),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }
