@@ -26,8 +26,6 @@ fun AddEditProductScreen(
     var quantity by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
     var imageUrl by remember { mutableStateOf("") }
-    var rating by remember { mutableStateOf("4.5") }
-    var isDeal by remember { mutableStateOf(false) }
 
     var errorMessage by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
@@ -44,8 +42,6 @@ fun AddEditProductScreen(
                 quantity = it.quantity.toString()
                 price = it.price.toString()
                 imageUrl = it.imageUrl
-                rating = it.rating.toString()
-                isDeal = it.isDealOfTheDay
             }
             isLoading = false
         }
@@ -111,32 +107,6 @@ fun AddEditProductScreen(
                 enabled = !isLoading
             )
 
-            Spacer(Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = rating,
-                onValueChange = { rating = it },
-                label = { Text("Note (0–5)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Deal of the Day")
-                Switch(
-                    checked = isDeal,
-                    onCheckedChange = { isDeal = it },
-                    enabled = !isLoading
-                )
-            }
-
             if (errorMessage.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
                 Text(
@@ -153,7 +123,6 @@ fun AddEditProductScreen(
                     scope.launch {
                         val quantityInt = quantity.toIntOrNull()
                         val priceDouble = price.toDoubleOrNull()
-                        val ratingFloat = rating.toFloatOrNull()
 
                         when {
                             name.isBlank() ->
@@ -162,8 +131,6 @@ fun AddEditProductScreen(
                                 errorMessage = "La quantité doit être > 0"
                             priceDouble == null || priceDouble <= 0 ->
                                 errorMessage = "Le prix doit être > 0"
-                            ratingFloat == null || ratingFloat < 0f || ratingFloat > 5f ->
-                                errorMessage = "La note doit être entre 0 et 5"
                             else -> {
                                 errorMessage = ""
                                 isLoading = true
@@ -176,9 +143,7 @@ fun AddEditProductScreen(
                                                 name = name,
                                                 quantity = quantityInt,
                                                 price = priceDouble,
-                                                imageUrl = imageUrl,
-                                                rating = ratingFloat,
-                                                isDealOfTheDay = isDeal
+                                                imageUrl = imageUrl
                                             )
                                         )
                                     }
@@ -187,9 +152,7 @@ fun AddEditProductScreen(
                                         name = name,
                                         quantity = quantityInt,
                                         price = priceDouble,
-                                        imageUrl = imageUrl,
-                                        rating = ratingFloat,
-                                        isDeal = isDeal
+                                        imageUrl = imageUrl
                                     )
                                 }
 

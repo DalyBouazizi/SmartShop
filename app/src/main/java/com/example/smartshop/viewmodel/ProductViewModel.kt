@@ -53,9 +53,7 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
         name: String,
         quantity: Int,
         price: Double,
-        imageUrl: String,
-        rating: Float,
-        isDeal: Boolean
+        imageUrl: String
     ) {
         viewModelScope.launch {
             val product = Product(
@@ -63,9 +61,7 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
                 name = name,
                 quantity = quantity,
                 price = price,
-                imageUrl = imageUrl,
-                rating = rating,
-                isDealOfTheDay = isDeal
+                imageUrl = imageUrl
             )
             repository.insert(product)
         }
@@ -122,7 +118,6 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun confirmOrder(paymentMethod: String, address: String) {
-        // For school project: just deduct from stock and clear cart, no real payment.
         viewModelScope.launch {
             val cartSnapshot = _cart.value.toList()
             val currentProducts = _products.value.toMutableList()

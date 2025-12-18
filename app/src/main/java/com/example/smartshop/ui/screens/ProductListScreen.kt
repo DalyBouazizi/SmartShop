@@ -1,12 +1,14 @@
 package com.example.smartshop.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -16,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.smartshop.data.model.Product
@@ -38,6 +41,9 @@ fun ProductListScreen(
     val auth = FirebaseAuth.getInstance()
 
     val isAdmin = userRole == "admin"
+
+    var productToDelete by remember { mutableStateOf<Product?>(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -106,24 +112,62 @@ fun ProductListScreen(
                 items(products) { product ->
                     ProductCardGrid(
                         product = product,
-                        onClick = { viewModel.addItemToCart(product) }
+                        isAdmin = isAdmin,
+                        onClick = { viewModel.addItemToCart(product) },
+                        onLongClick = {
+                            if (isAdmin) {
+                                productToDelete = product
+                                showDeleteDialog = true
+                            }
+                        }
                     )
                 }
             }
         }
+
+        if (showDeleteDialog && productToDelete != null) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                icon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+                title = { Text("Supprimer le produit") },
+                text = { Text("Voulez-vous vraiment supprimer \"${productToDelete?.name}\" ?") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            productToDelete?.let { viewModel.deleteProduct(it) }
+                            showDeleteDialog = false
+                            productToDelete = null
+                        }
+                    ) {
+                        Text("Supprimer", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("Annuler")
+                    }
+                }
+            )
+        }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ProductCardGrid(
     product: Product,
-    onClick: () -> Unit
+    isAdmin: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .height(230.dp)
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = if (isAdmin) onLongClick else null
+            ),
         shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
@@ -150,6 +194,7 @@ private fun ProductCardGrid(
                 AsyncImage(
                     model = product.imageUrl.ifBlank { "https://picsum.photos/300/300" },
                     contentDescription = product.name,
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
             }
