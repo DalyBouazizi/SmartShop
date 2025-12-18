@@ -63,6 +63,9 @@ fun NavGraph(
                     }
                 },
                 onNavigateToAdd = { navController.navigate(Routes.AddProduct.route) },
+                onNavigateToEdit = { productId ->
+                    navController.navigate(Routes.EditProduct.createRoute(productId))
+                },
                 onNavigateToStats = { navController.navigate(Routes.Statistics.route) },
                 onNavigateToCart = { navController.navigate(Routes.Cart.route) },
                 viewModel = productViewModel,
