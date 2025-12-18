@@ -21,7 +21,7 @@ class ProductRepository(private val productDao: ProductDao) {
 
     private fun getUserProductsCollection() =
         firestore.collection("users")
-            .document(auth.currentUser?.uid ?: "")
+            .document(auth.currentUser?.uid ?: "guest")
             .collection("products")
 
     suspend fun getProductById(id: String): Product? {
@@ -29,51 +29,59 @@ class ProductRepository(private val productDao: ProductDao) {
     }
 
     suspend fun insert(product: Product) {
-        // Insert locally first
         productDao.insertProduct(product)
 
-        // Sync to Firestore
-        try {
-            getUserProductsCollection()
-                .document(product.id)
-                .set(product)
-                .await()
-            Log.d("ProductRepository", "Product synced to Firestore: ${product.name}")
-        } catch (e: Exception) {
-            Log.e("ProductRepository", "Error syncing to Firestore", e)
+        if (auth.currentUser != null) {
+            try {
+                getUserProductsCollection()
+                    .document(product.id)
+                    .set(product)
+                    .await()
+                Log.d("ProductRepository", "Product synced to Firestore: ${product.name}")
+            } catch (e: Exception) {
+                Log.e("ProductRepository", "Error syncing to Firestore", e)
+            }
         }
     }
 
     suspend fun update(product: Product) {
         productDao.updateProduct(product)
 
-        try {
-            getUserProductsCollection()
-                .document(product.id)
-                .set(product)
-                .await()
-            Log.d("ProductRepository", "Product updated in Firestore: ${product.name}")
-        } catch (e: Exception) {
-            Log.e("ProductRepository", "Error updating Firestore", e)
+        if (auth.currentUser != null) {
+            try {
+                getUserProductsCollection()
+                    .document(product.id)
+                    .set(product)
+                    .await()
+                Log.d("ProductRepository", "Product updated in Firestore: ${product.name}")
+            } catch (e: Exception) {
+                Log.e("ProductRepository", "Error updating Firestore", e)
+            }
         }
     }
 
     suspend fun delete(product: Product) {
         productDao.deleteProduct(product)
 
-        try {
-            getUserProductsCollection()
-                .document(product.id)
-                .delete()
-                .await()
-            Log.d("ProductRepository", "Product deleted from Firestore: ${product.name}")
-        } catch (e: Exception) {
-            Log.e("ProductRepository", "Error deleting from Firestore", e)
+        if (auth.currentUser != null) {
+            try {
+                getUserProductsCollection()
+                    .document(product.id)
+                    .delete()
+                    .await()
+                Log.d("ProductRepository", "Product deleted from Firestore: ${product.name}")
+            } catch (e: Exception) {
+                Log.e("ProductRepository", "Error deleting from Firestore", e)
+            }
         }
     }
 
-    // Sync Firestore -> Room (download cloud data)
     suspend fun syncFromFirestore() {
+        if (auth.currentUser == null) {
+            Log.d("ProductRepository", "No user logged in, skipping Firestore sync")
+            return
+        }
+
         try {
             val snapshot = getUserProductsCollection().get().await()
             val products = snapshot.documents.mapNotNull { doc ->
@@ -90,8 +98,12 @@ class ProductRepository(private val productDao: ProductDao) {
         }
     }
 
-    // Listen for real-time updates - FIXED VERSION
     fun listenToFirestoreChanges(onUpdate: () -> Unit) {
+        if (auth.currentUser == null) {
+            Log.d("ProductRepository", "No user logged in, skipping Firestore listener")
+            return
+        }
+
         getUserProductsCollection()
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -102,7 +114,6 @@ class ProductRepository(private val productDao: ProductDao) {
                 snapshot?.documentChanges?.forEach { change ->
                     val product = change.document.toObject(Product::class.java)
 
-                    // Launch coroutine in the repository's scope
                     coroutineScope.launch {
                         when (change.type) {
                             com.google.firebase.firestore.DocumentChange.Type.ADDED,
